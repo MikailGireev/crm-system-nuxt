@@ -18,6 +18,7 @@
     "@radix-icons/vue": "^1.0.0",
     "@tanstack/vue-query": "^5.64.2",
     "@types/uuid": "^10.0.0",
+    "@vee-validate/nuxt": "^4.15.0",
     "@vueuse/core": "^12.5.0",
     "appwrite": "^16.1.0",
     "class-variance-authority": "^0.7.1",
