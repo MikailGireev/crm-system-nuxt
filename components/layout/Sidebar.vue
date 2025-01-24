@@ -28,4 +28,3 @@ const logout = async () => {
 </template>
 
 <style scoped></style>
-0
