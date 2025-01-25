@@ -2,6 +2,10 @@
 import dayjs from 'dayjs';
 import type { ICard, IColumn } from '../components/kanban/kanban.types';
 import { useKanbanQuery } from '@/components/kanban/useKanbanQuery';
+import { useMutation } from '@tanstack/vue-query';
+import type { EnumStatus } from '@/types/deals.types';
+import { COLLECTION_DEALS, DB_ID } from '@/app.constants';
+import { generateColumnsStyle } from '@/components/kanban/generate-gradient';
 
 useHead({
   title: 'Home | CRM System',
@@ -10,6 +14,40 @@ useHead({
 const dragCard = ref<ICard | null>(null);
 const sourceColumn = ref<IColumn | null>(null);
 const { data, isLoading, refetch } = useKanbanQuery();
+
+type TypeMutationVatiables = {
+  docId: string;
+  status: EnumStatus;
+};
+
+const { mutate } = useMutation({
+  mutationKey: ['move card'],
+  mutationFn: ({ docId, status }: TypeMutationVatiables) =>
+    DB.updateDocument(DB_ID, COLLECTION_DEALS, docId, {
+      status,
+    }),
+  onSuccess: () => {
+    refetch();
+  },
+});
+
+function handleDragStart(card: ICard, column: IColumn) {
+  dragCard.value = card;
+  sourceColumn.value = column;
+}
+
+function handleDragOver(event: DragEvent) {
+  event.preventDefault();
+}
+
+function handleDrop(targetColumn: IColumn) {
+  if (dragCard.value && sourceColumn.value) {
+    mutate({
+      docId: dragCard.value.id,
+      status: targetColumn.id,
+    });
+  }
+}
 </script>
 
 <template>
@@ -18,18 +56,34 @@ const { data, isLoading, refetch } = useKanbanQuery();
     <div v-if="isLoading">Loading...</div>
     <div v-else>
       <div class="grid grid-cols-5 gap-16">
-        <div v-for="(column, index) in data" :key="index">
-          <div class="rounded bg-slate-700 py-1 px-5 mb-2 text-center">{{ column.name }}</div>
+        <div
+          v-for="(column, index) in data"
+          :key="index"
+          @dragover="handleDragOver"
+          @drop="handleDrop(column)">
+          <div
+            class="rounded bg-slate-700 py-1 px-5 mb-2 text-center"
+            :style="generateColumnsStyle(index, data?.length)">
+            {{ column.name }}
+          </div>
           <div>
             <KanbanCreateDeal :refetch="refetch" :status="column.id" />
-            <UiCard v-for="card in column.cards" :key="card.id" class="mb-3" draggable="true">
+            <UiCard
+              v-for="card in column.cards"
+              :key="card.id"
+              class="mb-3"
+              draggable="true"
+              @dragstart="handleDragStart(card, column)">
               <UiCardHeader role="button">
                 <UiCardTitle>{{ card.name }}</UiCardTitle>
                 <UiCardDescription class="mt-2 block">{{
                   convertCurrency(card.price)
                 }}</UiCardDescription>
               </UiCardHeader>
-              <UiCardContent class="text-xs">Компания {{ card.companyName }}</UiCardContent>
+              <UiCardContent class="text-xs"
+                ><div>Компания</div>
+                {{ card.companyName }}</UiCardContent
+              >
               <UiCardFooter>{{ dayjs(card.$createdAt).format('DD.MM.YYYY') }}</UiCardFooter>
             </UiCard>
           </div>
